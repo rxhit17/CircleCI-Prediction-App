@@ -22,13 +22,13 @@ jobs:
           command: |
               echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcpkey.json
               gcloud auth activate-service-account --key-file=gcpkey.json
-              gcloud auth configure-us-central1-docker.pkg.dev || gcloud auth configure-docker
+              gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
 
       - run:
           name: Build and Push Image
           command: |
-              docker build -t us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/mlops-app/mlops-app:latest .
-              docker push us-central1-docker.pkg.dev/$GOOGLE_PROJECT_ID/mlops-app/mlops-app:latest
+              docker build -t us-central1-docker.pkg.dev/airy-semiotics-465715-j3/mlops-app/mlops-app:latest .
+              docker push us-central1-docker.pkg.dev/airy-semiotics-465715-j3/mlops-app/mlops-app:latest
 
   deploy_to_gke:
     executor: docker-executor
@@ -41,6 +41,7 @@ jobs:
               echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
               gcloud auth activate-service-account --key-file=gcp-key.json
               gcloud auth configure-docker us-central1-docker.pkg.dev || gcloud auth configure-docker
+              
       
       - run:
           name: Configure GKE
@@ -64,6 +65,7 @@ workflows:
             - build_docker_image
 
     
+
 
 
 
