@@ -6,25 +6,33 @@ executors:
       image: ubuntu-2204:current
     working_directory: ~/repo
 
+# Command to install gcloud, GKE auth plugin, and kubectl
 commands:
   setup_gcloud_and_kubectl:
     steps:
       - run:
           name: Install gcloud + GKE auth plugin + kubectl
           command: |
+            set -euo pipefail
             sudo apt-get update
-            sudo apt-get install -y curl apt-transport-https ca-certificates gnupg
-            # Google Cloud SDK repo
-            echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
-              | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
-            curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-              | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+            sudo apt-get install -y ca-certificates curl apt-transport-https gnupg
 
-            # Kubernetes repo for kubectl
-            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
-              | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg \
-              https://packages.cloud.google.com/apt/doc/apt-key.gpg
+            # Create keyrings directory
+            sudo install -m 0755 -d /etc/apt/keyrings
+
+            # Google Cloud SDK key and repo
+            curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+              | sudo gpg --dearmor -o /etc/apt/keyrings/google-cloud-sdk.gpg
+
+            echo "deb [signed-by=/etc/apt/keyrings/google-cloud-sdk.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+              | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list > /dev/null
+
+            # Kubernetes repo (for kubectl)
+            curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+              | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+
+            echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" \
+              | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
 
             sudo apt-get update
             sudo apt-get install -y google-cloud-cli google-cloud-sdk-gke-gcloud-auth-plugin kubectl
@@ -63,8 +71,8 @@ jobs:
           command: |
             echo "$GCLOUD_SERVICE_KEY" | base64 --decode > gcp-key.json
             gcloud --quiet auth activate-service-account --key-file=gcp-key.json
-            gcloud --quiet auth configure-docker us-central1-docker.pkg.dev
             gcloud --quiet config set project "$GOOGLE_PROJECT_ID"
+            gcloud --quiet auth configure-docker us-central1-docker.pkg.dev
       - run:
           name: Configure GKE Cluster
           command: |
